@@ -36,9 +36,58 @@ jobs:
       - name: Run tests
         run: ./mvnw test
 
+  deploy-with-ansible:
+    name: Deploy with Ansible
+    needs: build-and-test
+    if: success()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: demo/target/
+
+      - name: Start Docker containers
+        working-directory: demo
+        run: docker compose up -d
+
+      - name: Wait for web-server container
+        run: |
+          timeout 60 sh -c 'until docker ps --filter name=web-server --format "{{.Names}}" | grep -q "web-server"; do sleep 2; done'
+          echo "✅ web-server is running"
+
+      - name: Create /app dir and install mysql-client
+        run: |
+          docker exec web-server mkdir -p /app
+          docker exec web-server bash -c "DEBIAN_FRONTEND=noninteractive apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mysql-client 2>&1 | tail -3"
+          echo "✅ Web-server ready"
+
+      - name: Copy JAR to web-server
+        working-directory: demo
+        run: |
+          docker cp target/demo-0.0.1-SNAPSHOT.jar web-server:/app/demo-0.0.1-SNAPSHOT.jar
+          echo "✅ JAR copied"
+
+      - name: Install Ansible & Docker module
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ansible python3-docker 2>&1 | tail -3
+          echo "✅ Ansible installed"
+
+      - name: Run Ansible Playbook
+        working-directory: demo
+        run: |
+          ANSIBLE_REMOTE_TMP=/tmp ansible-playbook -i Ansible/hosts.ini Ansible/deploy.yml -v
+          echo "✅ Deploy completed"
+
   notify-on-failure:
     name: Notify on Failure
-    needs: build-and-test
+    needs: [build-and-test, deploy-with-ansible]
     if: failure()
     runs-on: ubuntu-latest
     steps:
@@ -49,12 +98,12 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: '❌ Build FAILED - ${{ github.repository }} (${{ github.ref_name }})'
+          subject: '❌ Pipeline FAILED - ${{ github.repository }} (${{ github.ref_name }})'
           to: srengty@gmail.com
           cc: ${{ github.event.head_commit.author.email || github.actor }}@users.noreply.github.com
           from: GitHub Actions CI
           body: |
-            ## ❌ Build Failed
+            ## ❌ Pipeline Failed
 
             **Repository:** ${{ github.repository }}
             **Branch:** ${{ github.ref_name }}
@@ -66,7 +115,7 @@ jobs:
 
   notify-on-success:
     name: Notify on Success
-    needs: build-and-test
+    needs: [build-and-test, deploy-with-ansible]
     if: success()
     runs-on: ubuntu-latest
     steps:
@@ -77,18 +126,19 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: '✅ Build SUCCESS - ${{ github.repository }} (${{ github.ref_name }})'
+          subject: '✅ Pipeline SUCCESS - ${{ github.repository }} (${{ github.ref_name }})'
           to: srengty@gmail.com
           cc: ${{ github.event.head_commit.author.email || github.actor }}@users.noreply.github.com
           from: GitHub Actions CI
           body: |
-            ## ✅ Build Succeeded
+            ## ✅ Pipeline Succeeded
 
             **Repository:** ${{ github.repository }}
             **Branch:** ${{ github.ref_name }}
             **Commit:** ${{ github.sha }}
             **Author:** ${{ github.event.head_commit.author.name || github.actor }}
             **Tests:** All tests passed
+            **Deploy:** Completed via Ansible
             **URL:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            The build completed successfully!
+            The build and deployment completed successfully!
