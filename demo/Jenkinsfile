@@ -1,48 +1,55 @@
 pipeline {
-agent any
+    agent any
 
-triggers {
-    pollSCM('H/5 * * * *')
-}
+    triggers {
+        pollSCM('H/5 * * * *')
+    }
 
-stages {
+    stages {
 
-    stage('Build') {
-        steps {
-            dir('demo') {
-                bat 'mvnw.cmd clean package -DskipTests'
+        stage('Build') {
+            steps {
+                dir('demo') {
+                    bat 'mvnw.cmd clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('demo') {
+                    bat 'mvnw.cmd test'
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    if (fileExists('demo/Ansible/deploy.yml')) {
+                        echo 'Deploy file exists'
+                        echo 'Skipping deploy because Ansible is not installed'
+                    }
+                }
             }
         }
     }
 
-    stage('Test') {
-        steps {
-            dir('demo') {
-                bat 'mvnw.cmd test'
-            }
+    post {
+        success {
+            emailext(
+                to: 'leangeimeng1602@gmail.com',
+                subject: 'Build Success',
+                body: 'Build and tests completed successfully.'
+            )
+        }
+
+        failure {
+            emailext(
+                to: 'leangeimeng1602@gmail.com',
+                subject: 'Build Failed',
+                body: 'Build, test, or deployment failed.'
+            )
         }
     }
-
-    stage('Deploy') {
-        steps {
-            dir('demo') {
-                bat 'ansible-playbook -i Ansible/hosts.ini Ansible/deploy.yml'
-            }
-        }
-    }
-}
-
-post {
-    failure {
-        emailext(
-            to: 'srengty@gmail.com',
-            recipientProviders: [
-                [$class: 'DevelopersRecipientProvider']
-            ],
-            subject: 'Build Failed',
-            body: 'Build, test, or deployment failed.'
-        )
-    }
-}
-
 }
