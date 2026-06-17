@@ -25,10 +25,21 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                script {
-                    if (fileExists('demo/Ansible/deploy.yml')) {
-                        echo 'Deploy file exists'
-                        echo 'Skipping deploy because Ansible is not installed'
+                dir('demo') {
+                    script {
+                        try {
+                            bat '''
+                                docker pull alpine/ansible:latest
+                                docker run --rm ^
+                                    -v "%CD%:/ansible:ro" ^
+                                    -w /ansible ^
+                                    alpine/ansible:latest ^
+                                    ansible-playbook -i /ansible/Ansible/hosts.ini /ansible/Ansible/deploy.yml -v
+                            '''
+                        } catch (e) {
+                            echo "Deploy stage failed: ${e.getMessage()}"
+                            currentBuild.result = 'UNSTABLE'
+                        }
                     }
                 }
             }
@@ -36,20 +47,22 @@ pipeline {
     }
 
     post {
-        success {
-            emailext(
-                to: 'leangeimeng1602@gmail.com',
-                subject: 'Build Success',
-                body: 'Build and tests completed successfully.'
-            )
-        }
-
         failure {
-            emailext(
-                to: 'leangeimeng1602@gmail.com',
-                subject: 'Build Failed',
-                body: 'Build, test, or deployment failed.'
-            )
+            script {
+                try {
+                    emailext(
+                        to: 'srengty@gmail.com',
+                        recipientProviders: [
+                            [$class: 'DevelopersRecipientProvider']
+                        ],
+                        subject: 'Build Failed',
+                        body: 'Build, test, or deployment failed.'
+                    )
+                } catch (e) {
+                    echo "Email notification failed: ${e.getMessage()}"
+                    echo "Please configure SMTP in Jenkins: Manage Jenkins > Configure System > Extended E-mail Notification"
+                }
+            }
         }
     }
 }
