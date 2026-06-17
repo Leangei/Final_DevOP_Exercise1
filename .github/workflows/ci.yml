@@ -87,39 +87,36 @@ jobs:
           name: app-jar
           path: demo/target/
 
-      - name: Install Ansible
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ansible
-
-      - name: Start Docker containers
+      - name: Start web-server container only (save memory)
         working-directory: demo
-        run: docker compose up -d
-        env:
-          COMPOSE_IGNORE_ORPHANS: True
-
-      - name: Wait for containers to be ready
         run: |
+          docker compose up -d web
           echo "Waiting for web-server container..."
-          until docker ps --filter name=web-server --format "{{.Names}}" | grep -q "web-server"; do
-            sleep 2
-          done
-          echo "web-server is running"
+          timeout 60 sh -c 'until docker ps --filter name=web-server --format "{{.Names}}" | grep -q "web-server"; do sleep 2; done'
+          echo "✅ web-server is running"
 
-      - name: Create /app directory and install tools in web-server
+      - name: Setup web-server container
         run: |
           docker exec web-server mkdir -p /app
-          docker exec web-server bash -c "apt-get update -qq && apt-get install -y -qq mysql-client 2>/dev/null"
+          echo "Installing mysql-client in web-server..."
+          docker exec web-server bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mysql-client 2>&1 | tail -3"
+          echo "✅ Web-server ready"
 
-      - name: Copy application JAR to web-server
+      - name: Copy application JAR
+        working-directory: demo
+        run: docker cp target/demo-0.0.1-SNAPSHOT.jar web-server:/app/demo-0.0.1-SNAPSHOT.jar
+
+      - name: Install Ansible + Docker modules
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ansible python3-docker 2>&1 | tail -3
+
+      - name: Start MySQL & Nginx, then run Ansible Deploy
         working-directory: demo
         run: |
-          docker cp target/demo-0.0.1-SNAPSHOT.jar web-server:/app/demo-0.0.1-SNAPSHOT.jar
-
-      - name: Install Ansible Docker connection module
-        run: pip install docker
-
-      - name: Run Ansible Playbook
-        working-directory: demo
-        run: |
+          docker compose up -d mysql nginx 2>&1 | tail -3
+          echo "Waiting for MySQL to be ready..."
+          timeout 90 sh -c 'until docker exec mysql-db mysqladmin ping -h localhost -u root -pHello@123 --silent 2>/dev/null; do sleep 3; done'
+          echo "✅ MySQL ready"
           ansible-playbook -i Ansible/hosts.ini Ansible/deploy.yml -v
+          echo "✅ Deploy completed"
