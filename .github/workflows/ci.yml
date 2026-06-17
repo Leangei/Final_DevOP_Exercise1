@@ -30,18 +30,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build with Maven (skip tests)
+      - name: Build with Maven
         run: chmod +x mvnw && ./mvnw clean package -DskipTests
 
       - name: Run tests
         run: ./mvnw test
-
-      # Upload JAR as artifact for deploy step
-      - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-jar
-          path: demo/target/demo-0.0.1-SNAPSHOT.jar
 
   notify-on-failure:
     name: Notify on Failure
@@ -49,74 +42,53 @@ jobs:
     if: failure()
     runs-on: ubuntu-latest
     steps:
-      - name: Send email notification
+      - name: Send failure email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: '❌ Build FAILED - ${{ github.repository }}'
+          subject: '❌ Build FAILED - ${{ github.repository }} (${{ github.ref_name }})'
           to: srengty@gmail.com
           cc: ${{ github.event.head_commit.author.email || github.actor }}@users.noreply.github.com
           from: GitHub Actions CI
           body: |
             ## ❌ Build Failed
-            
+
             **Repository:** ${{ github.repository }}
             **Branch:** ${{ github.ref_name }}
             **Commit:** ${{ github.sha }}
             **Author:** ${{ github.event.head_commit.author.name || github.actor }}
             **URL:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            
+
             Please check the build logs for more details.
 
-  deploy:
-    name: Deploy with Ansible
+  notify-on-success:
+    name: Notify on Success
     needs: build-and-test
     if: success()
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download JAR artifact
-        uses: actions/download-artifact@v4
+      - name: Send success email
+        uses: dawidd6/action-send-mail@v3
         with:
-          name: app-jar
-          path: demo/target/
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: '✅ Build SUCCESS - ${{ github.repository }} (${{ github.ref_name }})'
+          to: srengty@gmail.com
+          cc: ${{ github.event.head_commit.author.email || github.actor }}@users.noreply.github.com
+          from: GitHub Actions CI
+          body: |
+            ## ✅ Build Succeeded
 
-      - name: Start web-server container only (save memory)
-        working-directory: demo
-        run: |
-          docker compose up -d web
-          echo "Waiting for web-server container..."
-          timeout 60 sh -c 'until docker ps --filter name=web-server --format "{{.Names}}" | grep -q "web-server"; do sleep 2; done'
-          echo "✅ web-server is running"
+            **Repository:** ${{ github.repository }}
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.sha }}
+            **Author:** ${{ github.event.head_commit.author.name || github.actor }}
+            **Tests:** All tests passed
+            **URL:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-      - name: Setup web-server container
-        run: |
-          docker exec web-server mkdir -p /app
-          echo "Installing mysql-client in web-server..."
-          docker exec web-server bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mysql-client 2>&1 | tail -3"
-          echo "✅ Web-server ready"
-
-      - name: Copy application JAR
-        working-directory: demo
-        run: docker cp target/demo-0.0.1-SNAPSHOT.jar web-server:/app/demo-0.0.1-SNAPSHOT.jar
-
-      - name: Install Ansible + Docker modules
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ansible python3-docker 2>&1 | tail -3
-
-      - name: Start MySQL & Nginx, then run Ansible Deploy
-        working-directory: demo
-        run: |
-          docker compose up -d mysql nginx 2>&1 | tail -3
-          echo "Waiting for MySQL to be ready..."
-          timeout 90 sh -c 'until docker exec mysql-db mysqladmin ping -h localhost -u root -pHello@123 --silent 2>/dev/null; do sleep 3; done'
-          echo "✅ MySQL ready"
-          ANSIBLE_REMOTE_TMP=/tmp ansible-playbook -i Ansible/hosts.ini Ansible/deploy.yml -v
-          echo "✅ Deploy completed"
+            The build completed successfully!
