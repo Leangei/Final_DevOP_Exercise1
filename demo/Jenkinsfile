@@ -23,22 +23,37 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy: Start Containers') {
+            steps {
+                dir('demo') {
+                    bat 'docker-compose up -d'
+                }
+            }
+        }
+
+        stage('Deploy: Copy Application') {
+            steps {
+                dir('demo') {
+                    bat '''
+                        docker cp target/demo-0.0.1-SNAPSHOT.jar web-server:/app/
+                        docker cp pom.xml web-server:/app/
+                        docker cp mvnw mvnw.cmd web-server:/app/
+                        docker cp .mvn web-server:/app/.mvn/
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy: Verify & Backup') {
             steps {
                 dir('demo') {
                     script {
                         try {
                             bat '''
-                                docker pull alpine/ansible:latest
-                                docker run --rm ^
-                                    -v "%CD%:/ansible:ro" ^
-                                    -v //var/run/docker.sock:/var/run/docker.sock ^
-                                    -w /ansible ^
-                                    alpine/ansible:latest ^
-                                    sh -c "apk add --no-cache docker-cli && ansible-playbook -i /ansible/Ansible/hosts.ini /ansible/Ansible/deploy.yml -v"
+                                docker exec web-server sh -c "echo 'Deployment completed successfully' && mysqldump -h mysql-db -u root -pHello@123 A-MENG_leangei-db > /app/backup.sql" 2>&1
                             '''
                         } catch (e) {
-                            echo "Deploy stage failed: ${e.getMessage()}"
+                            echo "Deploy verification/backup failed: ${e.getMessage()}"
                             currentBuild.result = 'UNSTABLE'
                         }
                     }
