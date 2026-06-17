@@ -1,6 +1,5 @@
 - name: Deploy Application to Web Server
   hosts: webserver
-  become: yes
 
   tasks:
     - name: Verify JAR is deployed

@@ -118,5 +118,5 @@ jobs:
           echo "Waiting for MySQL to be ready..."
           timeout 90 sh -c 'until docker exec mysql-db mysqladmin ping -h localhost -u root -pHello@123 --silent 2>/dev/null; do sleep 3; done'
           echo "✅ MySQL ready"
-          ansible-playbook -i Ansible/hosts.ini Ansible/deploy.yml -v
+          ANSIBLE_REMOTE_TMP=/tmp ansible-playbook -i Ansible/hosts.ini Ansible/deploy.yml -v
           echo "✅ Deploy completed"
