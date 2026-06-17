@@ -19,7 +19,6 @@
         .card p { color:#6b7280; font-size:13px; margin-bottom:12px; line-height:1.5; }
         .card .meta { display:flex; justify-content:space-between; align-items:center; }
         .card .points { display:inline-block; background:#dbeafe; color:#1e40af; padding:2px 10px; border-radius:12px; font-size:11px; font-weight:600; }
-        .card .url { background:#f3f4f6; padding:6px 10px; border-radius:6px; font-family:monospace; font-size:11px; color:#374151; }
         .section-title { color:white; font-size:20px; margin-bottom:16px; }
         .footer { text-align:center; color:rgba(255,255,255,0.7); font-size:13px; margin-top:40px; }
         .status-dot { display:inline-block; width:10px; height:10px; background:#22c55e; border-radius:50%; margin-right:6px; animation:pulse 2s infinite; }
@@ -38,111 +37,72 @@
     </div>
 
     <div class="nav-links">
-        <a href="/api/profiles">📋 Profiles API</a>
-        <a href="/api/templates">🎨 Templates API</a>
+        <a href="/web/profiles">👤 Manage Profiles</a>
+        <a href="/web/templates">🎨 Manage Templates</a>
+        <a href="/web/batch">📦 Batch Generation</a>
         <a href="/api/health">💚 Health Check</a>
     </div>
 
-    <h2 class="section-title">📋 Core Features</h2>
+    <h2 class="section-title">📋 Features</h2>
     <div class="card-grid">
-        <a class="card" href="/api/profiles" target="_blank">
+        <a class="card" href="/web/profiles">
             <h3>👤 Profile CRUD</h3>
-            <p>Create, read, update, delete student, employee, and user profiles with full validation.</p>
-            <div class="meta"><span class="points">5 pts</span><span class="url">GET /api/profiles</span></div>
+            <p>Create, read, update, delete student, employee, and user profiles with photo upload.</p>
+            <div class="meta"><span class="points">5 pts</span></div>
         </a>
 
-        <a class="card" onclick="document.getElementById('photo-upload').click();return false;">
+        <a class="card" href="/web/profiles/new">
             <h3>📸 Photo Upload</h3>
-            <p>Upload JPEG/PNG photos (max 5MB) for ID cards. Validates file size and type.</p>
-            <div class="meta"><span class="points">3 pts</span><span class="url">POST /api/profiles (multipart)</span></div>
+            <p>Upload JPEG/PNG photos (max 5MB) for ID cards with file type validation.</p>
+            <div class="meta"><span class="points">3 pts</span></div>
         </a>
 
-        <a class="card" href="/api/templates" target="_blank">
+        <a class="card" href="/web/templates">
             <h3>🎨 Template Engine</h3>
-            <p>Thymeleaf HTML/CSS templates for ID card layout with customizable colors and organization name.</p>
-            <div class="meta"><span class="points">2 pts</span><span class="url">GET /api/templates</span></div>
+            <p>Thymeleaf HTML/CSS card templates with customizable colors and branding.</p>
+            <div class="meta"><span class="points">2 pts</span></div>
         </a>
 
-        <a class="card" id="preview-card" onclick="showPreviewPrompt();return false;">
+        <a class="card" href="/web/profiles">
             <h3>👁️ Live Preview</h3>
-            <p>Instant preview of the ID card after entering details. Enter a profile ID to preview.</p>
-            <div class="meta"><span class="points">5 pts</span><span class="url">GET /preview/{id}</span></div>
+            <p>Instant preview of ID cards with QR code and barcode. Click "Preview" on any profile.</p>
+            <div class="meta"><span class="points">5 pts</span></div>
         </a>
 
-        <a class="card">
+        <a class="card" href="/web/profiles/new">
             <h3>🔢 ID Generation</h3>
-            <p>Auto-generated UUIDs and custom registration numbers in YEAR-DEPT-### format.</p>
-            <div class="meta"><span class="points">2 pts</span><span class="url">Auto on profile create</span></div>
+            <p>Auto-generated UUIDs and registration numbers in YEAR-DEPT-### format.</p>
+            <div class="meta"><span class="points">2 pts</span></div>
         </a>
 
-        <a class="card" id="pdf-card" onclick="showPdfPrompt();return false;">
+        <a class="card" href="/web/profiles">
             <h3>📄 PDF Export</h3>
-            <p>Generate ID cards as downloadable PDF files using iText library with full card layout.</p>
-            <div class="meta"><span class="points">5 pts</span><span class="url">GET /api/pdf/{id}</span></div>
+            <p>Download ID cards as PDF files via the "PDF" button on each profile.</p>
+            <div class="meta"><span class="points">5 pts</span></div>
         </a>
 
-        <a class="card" href="/api/pdf/batch" target="_blank">
+        <a class="card" href="/web/batch">
             <h3>📦 Batch Generation</h3>
-            <p>Create multiple ID cards at once for teams, classes, or employee groups as ZIP archive.</p>
-            <div class="meta"><span class="points">2 pts</span><span class="url">POST /api/pdf/batch</span></div>
+            <p>Select multiple profiles and generate all ID cards at once as a ZIP archive.</p>
+            <div class="meta"><span class="points">2 pts</span></div>
         </a>
 
-        <a class="card" id="qrcode-card" onclick="showQrPrompt();return false;">
+        <a class="card" href="/web/profiles">
             <h3>📱 QR Code</h3>
-            <p>Generate QR codes with profile verification URLs using ZXing library. Embedded on cards.</p>
-            <div class="meta"><span class="points">3 pts</span><span class="url">GET /api/qrcode/{text}</span></div>
+            <p>QR codes with profile verification URLs generated via ZXing on each card.</p>
+            <div class="meta"><span class="points">3 pts</span></div>
         </a>
 
-        <a class="card" id="barcode-card" onclick="showBarcodePrompt();return false;">
+        <a class="card" href="/web/profiles">
             <h3>🔲 Barcode Support</h3>
-            <p>Code-128 and EAN-13 barcodes generated from registration numbers. Embedded on cards.</p>
-            <div class="meta"><span class="points">3 pts</span><span class="url">GET /api/barcode/{id}</span></div>
+            <p>Code-128 and EAN-13 barcodes generated from registration numbers on cards.</p>
+            <div class="meta"><span class="points">3 pts</span></div>
         </a>
     </div>
 
     <div class="footer">
-        <p>Built with Spring Boot 3.2.5 + MySQL | Total: 30 points | <a href="https://github.com/e20221618/IDCardManagement" style="color:white;" target="_blank">GitHub Repository</a></p>
+        <p>Built with Spring Boot 3.2.5 + MySQL | Total: 30 points</p>
     </div>
 </div>
-
-<!-- Hidden file input for photo upload -->
-<input type="file" id="photo-upload" accept="image/jpeg,image/png" style="display:none;" onchange="handlePhotoUpload(event)"/>
-
-<script>
-function showPreviewPrompt() {
-    const id = prompt("Enter Profile ID to preview:");
-    if (id && id.trim()) {
-        window.open('/preview/' + id.trim(), '_blank');
-    }
-}
-
-function showPdfPrompt() {
-    const id = prompt("Enter Profile ID to download PDF:");
-    if (id && id.trim()) {
-        window.open('/api/pdf/' + id.trim(), '_blank');
-    }
-}
-
-function showQrPrompt() {
-    const text = prompt("Enter text/URL for QR Code:");
-    if (text && text.trim()) {
-        window.open('/api/qrcode/' + encodeURIComponent(text.trim()), '_blank');
-    }
-}
-
-function showBarcodePrompt() {
-    const id = prompt("Enter Profile ID for barcode:");
-    if (id && id.trim()) {
-        window.open('/api/barcode/' + id.trim(), '_blank');
-    }
-}
-
-function handlePhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    alert('Photo selected: ' + file.name + '\nUse POST /api/profiles with multipart/form-data to upload with profile data.');
-    event.target.value = '';
-}
-</script>
 </body>
 </html>
