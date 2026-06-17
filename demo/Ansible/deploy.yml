@@ -1,39 +1,32 @@
-
-- name: Web Server Deployment Tasks
+- name: Deploy Application to Web Server
   hosts: webserver
   become: yes
 
   tasks:
-    # 1. Reset any local changes and git pull
-    - name: Reset local changes
-      command: git checkout -- .
-      args:
-        chdir: /app
+    - name: Verify JAR is deployed
+      stat:
+        path: /app/demo-0.0.1-SNAPSHOT.jar
+      register: jar_file
 
-    - name: Git pull latest code
-      command: git pull
-      args:
-        chdir: /app
+    - name: Report JAR deployment status
+      debug:
+        msg: "JAR file {{ 'exists' if jar_file.stat.exists else 'MISSING' }} at /app/demo-0.0.1-SNAPSHOT.jar ({{ jar_file.stat.size }} bytes)"
 
-    # 2. Build using Maven
-    - name: Build with Maven
-      command: mvn clean package -DskipTests
-      args:
-        chdir: /app
-
-    # 3. Run tests against SQLite
-    - name: Run tests with SQLite test DB
-      command: mvn test -Dspring.profiles.active=test
-      args:
-        chdir: /app
-
-    # 4. Backup MySQL database
-    - name: Backup MySQL database
+    - name: Backup MySQL database via mysqldump
       command: >
-        mysqldump -u root -pHello@123 A_MENG_leangei_db
+        mysqldump -h mysql-db -u root -pHello@123 A-MENG_leangei-db
       register: backup_output
 
     - name: Save backup to file
       copy:
         content: "{{ backup_output.stdout }}"
-        dest: /app/backup.sql```
+        dest: /app/backup.sql
+
+    - name: Verify backup
+      stat:
+        path: /app/backup.sql
+      register: backup_file
+
+    - name: Backup complete
+      debug:
+        msg: "MySQL backup saved to /app/backup.sql ({{ backup_file.stat.size }} bytes)"

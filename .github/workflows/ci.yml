@@ -106,18 +106,17 @@ jobs:
           done
           echo "web-server is running"
 
-      - name: Create /app directory in web-server container
-        run: docker exec web-server mkdir -p /app
+      - name: Create /app directory and install tools in web-server
+        run: |
+          docker exec web-server mkdir -p /app
+          docker exec web-server bash -c "apt-get update -qq && apt-get install -y -qq mysql-client 2>/dev/null"
 
       - name: Copy application JAR to web-server
         working-directory: demo
         run: |
           docker cp target/demo-0.0.1-SNAPSHOT.jar web-server:/app/demo-0.0.1-SNAPSHOT.jar
-          docker cp pom.xml web-server:/app/
-          docker cp mvnw mvnw.cmd web-server:/app/
-          [ -d .mvn ] && docker cp .mvn web-server:/app/.mvn/
 
-      - name: Install Python Docker module for Ansible
+      - name: Install Ansible Docker connection module
         run: pip install docker
 
       - name: Run Ansible Playbook
