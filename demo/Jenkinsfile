@@ -32,6 +32,7 @@ pipeline {
                                 docker pull alpine/ansible:latest
                                 docker run --rm ^
                                     -v "%CD%:/ansible:ro" ^
+                                    -v //var/run/docker.sock:/var/run/docker.sock ^
                                     -w /ansible ^
                                     alpine/ansible:latest ^
                                     ansible-playbook -i /ansible/Ansible/hosts.ini /ansible/Ansible/deploy.yml -v
