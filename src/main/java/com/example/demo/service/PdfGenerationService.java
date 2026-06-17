@@ -4,14 +4,10 @@ import com.example.demo.model.Profile;
 import com.example.demo.model.Template;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
-import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
-import com.itextpdf.kernel.font.PdfFont;
-import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
-import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
@@ -20,20 +16,23 @@ import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import org.springframework.stereotype.Service;
 
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Service
 public class PdfGenerationService {
 
     private final QRCodeService qrCodeService;
     private final BarcodeService barcodeService;
+    private final FileStorageService fileStorageService;
 
-    public PdfGenerationService(QRCodeService qrCodeService, BarcodeService barcodeService) {
+    public PdfGenerationService(QRCodeService qrCodeService, BarcodeService barcodeService, FileStorageService fileStorageService) {
         this.qrCodeService = qrCodeService;
         this.barcodeService = barcodeService;
+        this.fileStorageService = fileStorageService;
     }
 
     public byte[] generate(Profile profile) throws Exception {
@@ -79,7 +78,10 @@ public class PdfGenerationService {
         Cell photoCell = new Cell();
         if (profile.hasPhoto()) {
             try {
-                ImageData imageData = ImageDataFactory.create(profile.getPhotoFileName());
+                // Load photo from the uploads directory
+                Path photoPath = fileStorageService.load(profile.getPhotoFileName());
+                byte[] photoBytes = Files.readAllBytes(photoPath);
+                ImageData imageData = ImageDataFactory.create(photoBytes);
                 Image photo = new Image(imageData).scaleToFit(120, 150);
                 photoCell.add(photo);
             } catch (Exception e) {

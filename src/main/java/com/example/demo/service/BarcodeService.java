@@ -24,9 +24,18 @@ public class BarcodeService {
     }
 
     public BufferedImage generateEAN13(String value) throws Exception {
+        // EAN-13 requires exactly 12-13 numeric digits.
+        // Extract digits from the value and pad/truncate as needed.
+        String digits = value.replaceAll("[^0-9]", "");
+        if (digits.length() > 12) {
+            digits = digits.substring(0, 12);
+        }
+        // Pad with leading zeros if too short (min 12 digits for EAN-13)
+        digits = String.format("%-12s", digits).replace(' ', '0');
+
         EAN13Writer writer = new EAN13Writer();
         BitMatrix matrix = writer.encode(
-                value,
+                digits,
                 BarcodeFormat.EAN_13,
                 350,
                 80
