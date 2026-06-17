@@ -9,19 +9,25 @@ stages {
 
     stage('Build') {
         steps {
-            bat 'mvn clean package -DskipTests'
+            dir('demo') {
+                bat 'mvnw.cmd clean package -DskipTests'
+            }
         }
     }
 
     stage('Test') {
         steps {
-            bat 'mvn test'
+            dir('demo') {
+                bat 'mvnw.cmd test'
+            }
         }
     }
 
     stage('Deploy') {
         steps {
-            bat 'ansible-playbook -i demo/Ansible/hosts.ini demo/Ansible/deploy.yml'
+            dir('demo') {
+                bat 'ansible-playbook -i Ansible/hosts.ini Ansible/deploy.yml'
+            }
         }
     }
 }
@@ -38,4 +44,5 @@ post {
         )
     }
 }
+
 }
