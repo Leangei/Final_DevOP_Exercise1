@@ -1,0 +1,44 @@
+pipeline {
+agent any
+
+```
+triggers {
+    pollSCM('H/5 * * * *')
+}
+
+stages {
+
+    stage('Build') {
+        steps {
+            bat 'mvn clean package -DskipTests'
+        }
+    }
+
+    stage('Test') {
+        steps {
+            bat 'mvn test'
+        }
+    }
+
+    stage('Deploy') {
+        steps {
+            bat 'ansible-playbook -i Ansible/hosts.ini Ansible/deploy.yml'
+        }
+    }
+}
+
+post {
+    failure {
+        emailext(
+            to: 'srengty@gmail.com',
+            recipientProviders: [
+                [$class: 'DevelopersRecipientProvider']
+            ],
+            subject: 'Build Failed',
+            body: 'Build or test failed.'
+        )
+    }
+}
+```
+
+}
