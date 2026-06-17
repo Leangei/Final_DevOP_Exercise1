@@ -1,7 +1,6 @@
 pipeline {
 agent any
 
-```
 triggers {
     pollSCM('H/5 * * * *')
 }
@@ -22,7 +21,7 @@ stages {
 
     stage('Deploy') {
         steps {
-            bat 'ansible-playbook -i Ansible/hosts.ini Ansible/deploy.yml'
+            bat 'ansible-playbook -i demo/Ansible/hosts.ini demo/Ansible/deploy.yml'
         }
     }
 }
@@ -35,10 +34,8 @@ post {
                 [$class: 'DevelopersRecipientProvider']
             ],
             subject: 'Build Failed',
-            body: 'Build or test failed.'
+            body: 'Build, test, or deployment failed.'
         )
     }
 }
-```
-
 }
